@@ -1,0 +1,195 @@
+﻿@model Credit 
+
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+
+<style>
+    div {
+        margin-bottom: 10px;
+    }
+
+    input:invalid+div:after {
+        content: '✖';
+        padding-left: 5px;
+    }
+
+    input:valid+div:after {
+        content: '✓';
+        padding-left: 5px;
+    }
+</style>
+
+<div class="alert alert-warning" role="alert">
+    FORMULA = CA + (CA * (CR / 100) * (CT * 30.5 / 365)) 
+</div>
+<form method="post" asp-controller="Credit" asp-action="SetCredit">
+    <div class="row" style="width:100%">
+        <div class="form-group col-sm-3">
+            <label for="creditAmount">Credit Amount (₴) </label>
+            @if (Model.CreditAmount == 0)
+            {
+                <input style="width: 250px" asp-for="CreditAmount" value="" id="creditAmount" type="number" min="1000" class="form-control" aria-describedby="emailHelp" max="2000000" required placeholder="Enter credit amount" onchange="setCreditRateFieldValue()">
+            }
+            else
+            {
+                <input style="width: 250px" asp-for="CreditAmount" id="creditAmount" type="number" min="1000" class="form-control" aria-describedby="emailHelp" max="2000000" required placeholder="Enter credit amount" onchange="setCreditRateFieldValue()">
+            }
+            <div class="validity">Min size of credit amount 1000</div>
+        </div>
+        <div class="form-group col-sm-3">
+            <label for="creditTerm">Credit Term (month)</label>
+            @if (Model.CreditTerm == 0)
+            {
+                <input style="width: 250px" asp-for="CreditTerm" value="" id="creditTerm" type="number" class="form-control" min="1" max="240" required placeholder="Enter credit term" onchange="setCreditTermFieldValue() ">
+            }
+            else
+            {
+                <input style="width: 250px" asp-for="CreditTerm" id="creditTerm" type="number" class="form-control" min="1" max="240" required placeholder="Enter credit term" onchange="setCreditTermFieldValue() ">
+
+            }
+            <span class="validity"> Min length of credit term is 1 month </span>
+        </div>
+        <div class="form-group col-sm-3">
+            <label for="creditRate">Credit Rate (%) </label>
+            @if (Model.CreditRate == 0)
+            {
+                <input style="width: 250px" asp-for="CreditRate" value="" id="creditRate" type="number" class="form-control" min="0" max="100" required placeholder="Enter credit rate" readonly>
+            }
+            else
+            {
+                <input style="width: 250px" asp-for="CreditRate" id="creditRate" type="number" class="form-control" min="1" max="100" required placeholder="Enter credit rate" readonly>
+            }
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+@if (Model.TotalSum != null)
+{
+    <br/><br/>
+    <table class="table table-bordered">
+        <thead>
+        </thead>
+        <tbody>
+            <tr class="table-primary">
+                <td>TotalSum</td>
+                <td>@Model.TotalSum</td>
+            </tr>
+            <tr>
+                <td>Credit Rate</td>
+                <td>@Model.CreditRate %</td>
+            </tr>
+        <tr>
+            <td>Credit Body</td>
+            <td>@Model.CreditAmount</td>
+        </tr>
+        <tr>
+            <td>Credit Percentage</td>
+            <td>@(Model.TotalSum - Model.CreditAmount)</td>
+        </tr>
+        </tbody>
+    </table>
+}
+
+@section Scripts {
+    <script>
+
+        if (document.getElementById('creditAmount').value != null) {
+            document.getElementById('creditTerm').readonly = false;
+        }
+        if (document.getElementById('creditAmount').value == null) {
+            document.getElementById('creditTerm').readonly = true;
+        }
+
+        function changeRateByAmount() {
+            var creditRateField = document.getElementById('creditRate');
+            var creditTermField = document.getElementById('creditTerm');
+            var creditAmount = parseInt(document.getElementById('creditAmount').value);
+            var rateValue = 15;
+
+            if (isNaN(creditAmount) || creditAmount < 1000) {
+                return -1;
+            }
+
+            if (!isNaN(creditAmount)) {
+                rateValue = 15;
+            } else if (creditTermField.value !== "" && creditRateField.value !== "") {
+                rateValue = parseInt(document.getElementById('creditRate').value);
+            }
+
+            if (creditAmount >= 10000 && creditAmount < 20000) {
+                rateValue -= 1;
+            } else if (creditAmount >= 20000 && creditAmount < 40000) {
+                rateValue -= 2;
+            }
+
+            return rateValue;
+        }
+
+        function setCreditRateFieldValue() {
+            var creditRateField = document.getElementById('creditRate');
+            var creditTermField = document.getElementById('creditTerm');
+            var creditAmountField = document.getElementById('creditAmount');
+
+            var result = changeRateByAmount();
+            var value = result.toString();
+
+            if (creditTermField.value !== "" && creditRateField.placeholder === "Set personal credit rate") {
+                return;
+            } else if (creditTermField.value === "" && result === -1) {
+                value = "";
+                creditRateField.setAttribute("placeholder", "Credit rate will be automatically set");
+                creditRateField.readOnly = true;
+            } else if (parseInt(creditAmountField.value) >= 40000) {
+                creditRateField.readOnly = false;
+            } else if (parseInt(creditAmountField.value) < 40000) {
+                creditRateField.readOnly = true;
+            }
+
+            creditRateField.setAttribute("value", value);
+        }
+
+        function changeRateByTerm() {
+            var creditTerm = parseInt(document.getElementById('creditTerm').value);
+            var rateValue = changeRateByAmount();
+
+            if (isNaN(creditTerm) || creditTerm < 1) {
+                return -1;
+            }
+
+            if (creditTerm != null && (creditTerm >= 36 && creditTerm < 60)) {
+                rateValue += 1;
+            } else if (creditTerm != null && (creditTerm >= 60 && creditTerm < 120)) {
+                rateValue += 2;
+            }
+
+            return rateValue;
+        }
+
+        function setCreditTermFieldValue() {
+            var creditRateField = document.getElementById('creditRate');
+            var creditAmountField = document.getElementById('creditAmount');
+            var creditTermField = document.getElementById('creditTerm');
+
+            var result = changeRateByTerm();
+            var value = result.toString();
+
+
+            if (creditAmountField.value !== "" && creditRateField.placeholder === "Set personal credit rate") {
+                return;
+            } else if (creditAmountField.value === "" && result === -1) {
+                creditRateField.setAttribute("placeholder", "Credit rate will be automatically set");
+                creditRateField.readOnly = true;
+                value = "";
+            } else if (creditAmountField.value !== "" && result === -1) {
+                value = changeRateByAmount().toString();
+            } else if (parseInt(creditTermField.value) >= 120) {
+                creditRateField.readOnly = false;
+            }
+
+            creditRateField.setAttribute("value", value);
+        }
+    </script>
+}
